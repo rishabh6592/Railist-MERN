@@ -201,7 +201,7 @@ export default function Search() {
       {/* INITIAL STATE */}
       {!loading && !q.trim() && (
         <div className="empty-state">
-          Enter a train number or station to search live data.
+          {/* Enter a train number or station to search live data. */}
         </div>
       )}
     </div>

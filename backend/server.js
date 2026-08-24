@@ -11,7 +11,29 @@ import { fetchLiveStationTrains, isLive } from "./services/railwayApi.js";
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
+// =====================================================
+// CORS SETUP - Multiple allowed origins (local + production)
+// =====================================================
+const allowedOrigins = [
+  "http://localhost:5173", // local dev
+  process.env.CLIENT_URL, // production frontend URL (set in Render env vars)
+].filter(Boolean); // undefined/empty values hata dega
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Postman/server-to-server requests me origin nahi hota, unhe allow kar do
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`CORS blocked request from origin: ${origin}`);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 // Health Check Endpoint

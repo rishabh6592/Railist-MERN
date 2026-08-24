@@ -186,6 +186,10 @@ export default function Layout({ children }) {
           </div>
         </header>
         <main className="content">{children}</main>
+        <footer style={{ textAlign: "center", padding: "16px", fontSize: 13, color: "#94a3b8" }}>
+          <p style={{ margin: "2px 0" }}>© {new Date().getFullYear()} Railist. All rights reserved.</p>
+          <p style={{ margin: "2px 0" }}>Built with ❤️ by Rishabh</p>
+        </footer>
       </div>
     </div>
   );
