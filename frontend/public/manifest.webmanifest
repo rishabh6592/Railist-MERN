@@ -1,0 +1,9 @@
+{
+  "name": "Railist — Live Train Intelligence",
+  "short_name": "Railist",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f8fc",
+  "theme_color": "#1456d9",
+  "icons": []
+}
