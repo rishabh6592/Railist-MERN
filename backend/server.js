@@ -12,25 +12,14 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // =====================================================
-// CORS SETUP - Multiple allowed origins (local + production)
+// CORS SETUP - Sabhi Origins ko Allow karega (Production & Local Fix)
 // =====================================================
-const allowedOrigins = [
-  "http://localhost:5173", // local dev
-  process.env.CLIENT_URL, // production frontend URL (set in Render env vars)
-].filter(Boolean); // undefined/empty values hata dega
-
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // Postman/server-to-server requests me origin nahi hota, unhe allow kar do
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.warn(`CORS blocked request from origin: ${origin}`);
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: true, // Automatically mirrors the incoming request origin (No CORS block)
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
 
@@ -57,8 +46,8 @@ app.get("/api/stations/:code/live", async (req, res) => {
     return res.json({
       success: true,
       stationCode: cleanCode,
-      count: liveTrains.length,
-      data: liveTrains,
+      count: liveTrains?.length || 0,
+      data: liveTrains || [],
     });
   } catch (error) {
     console.error(`Live station endpoint error for ${req.params.code}:`, error.message);
@@ -74,10 +63,15 @@ app.use("/api/stations", stationRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ success: false, message: "Something went wrong on the server" });
+  console.error("Server Error:", err.message);
+  res.status(500).json({ success: false, message: err.message || "Something went wrong on the server" });
 });
 
-connectDB().then(() => {
-  app.listen(PORT, () => console.log(`🚆 Railist API running on http://localhost:${PORT}`));
-});
+// Connect to Database & Start Server
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => console.log(`🚆 Railist API running on http://localhost:${PORT}`));
+  })
+  .catch((err) => {
+    console.error("MongoDB Connection Failed:", err.message);
+  });
