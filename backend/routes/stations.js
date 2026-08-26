@@ -6,6 +6,24 @@ const router = express.Router();
 const detailsCache = new Map();
 const CACHE_TTL = 10 * 60 * 1000;
 
+// Live departure board cache (separate, shorter TTL)
+const liveBoardCache = new Map();
+const LIVE_BOARD_TTL = 90 * 1000; // 90 seconds
+
+function getLiveCached(key) {
+  const entry = liveBoardCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > LIVE_BOARD_TTL) {
+    liveBoardCache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+function setLiveCached(key, data) {
+  liveBoardCache.set(key, { data, timestamp: Date.now() });
+}
+
 // Known Hub Metro Stations
 const METRO_STATIONS = {
   DELHI: ["NDLS", "DLI", "NZM", "ANVT", "DEC", "DEE", "DSA", "SZMB", "ANVR"],
@@ -38,6 +56,34 @@ function getMetroTransit(code, name = "") {
   }
   return null;
 }
+
+// =====================================================
+// LIVE DEPARTURE BOARD (UP & DOWN, NEXT N HOURS)
+// GET /api/stations/:code/live
+// =====================================================
+router.get("/:code/live", async (req, res) => {
+  const code = String(req.params.code || "").toUpperCase().trim();
+  const hours = Number(req.query.hours) || 6;
+
+  if (!code) {
+    return res.status(400).json({ success: false, message: "Station code required" });
+  }
+
+  const cacheKey = `${code}_${hours}`;
+  const cached = getLiveCached(cacheKey);
+  if (cached) {
+    return res.json({ success: true, data: cached });
+  }
+
+  try {
+    const trains = await fetchLiveStationTrains(code, hours);
+    setLiveCached(cacheKey, trains);
+    return res.json({ success: true, data: trains });
+  } catch (error) {
+    console.error(`Error loading live board for ${code}:`, error.message);
+    return res.status(500).json({ success: false, message: "Error loading live departures" });
+  }
+});
 
 router.get("/:code/details", async (req, res) => {
   const code = String(req.params.code || "").toUpperCase().trim();

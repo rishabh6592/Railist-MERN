@@ -14,6 +14,26 @@ export function setDemoTrains(data) {
 }
 
 // =====================================================
+// SIMPLE IN-MEMORY CACHE (saves RailRadar quota)
+// =====================================================
+const liveCache = new Map();
+const LIVE_CACHE_TTL = 90 * 1000; // 90 seconds — same train requested again soon uses cached copy
+
+function getCached(key) {
+  const entry = liveCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > LIVE_CACHE_TTL) {
+    liveCache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+function setCached(key, data) {
+  liveCache.set(key, { data, timestamp: Date.now() });
+}
+
+// =====================================================
 // GET ALL TRAINS
 // /api/trains
 // =====================================================
@@ -74,10 +94,17 @@ router.get("/:number", async (req, res, next) => {
     startDay = Math.max(0, Math.round(diffTime / (1000 * 60 * 60 * 24)));
   }
 
+  const cacheKey = `${number}_${requestedDate || "today"}`;
+
   // ---------------------------------------------------
-  // 1. Try LIVE RailRadar / Third-Party API first
+  // 1. Try LIVE RailRadar / Third-Party API first (with cache)
   // ---------------------------------------------------
   if (isLive) {
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
     try {
       console.log(`🚆 Fetching train: ${number} for date: ${requestedDate || "Today"} (startDay: ${startDay})`);
 
@@ -85,6 +112,7 @@ router.get("/:number", async (req, res, next) => {
 
       if (live) {
         console.log(`✅ Train data received for ${number}`);
+        setCached(cacheKey, live);
         return res.json(live);
       }
     } catch (error) {

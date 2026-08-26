@@ -156,7 +156,8 @@ export default function TrainDetails() {
 
     fetchTrain();
 
-    const interval = isToday ? setInterval(fetchTrain, 30 * 1000) : null;
+    // 30 seconds → 3 minutes (RailRadar quota bachane ke liye)
+    const interval = isToday ? setInterval(fetchTrain, 3 * 60 * 1000) : null;
 
     return () => {
       mounted = false;
@@ -489,6 +490,7 @@ export default function TrainDetails() {
                   const stationDelay = Number(station.delay ?? station.delayMinutes ?? station.delayArrival ?? 0);
                   const stName = station.name || station.stationName || "Station";
                   const stCode = station.code || station.stationCode || "";
+                  const stPlatform = station.platform || null;
                   const schTime = station.scheduled || station.schedule || station.sch_arr || station.arrival || station.sch_dep || "—";
                   const actTime = station.actual || station.act_arr || station.act_dep || "—";
                   
@@ -514,6 +516,12 @@ export default function TrainDetails() {
 
                         <span>
                           Sch. {schTime} · Actual {actTime !== "-" && actTime !== "_" ? actTime : "—"}
+                          {stPlatform && (
+                            <>
+                              {" "}
+                              · <b style={{ color: "#2563eb" }}>{stPlatform}</b>
+                            </>
+                          )}
                         </span>
                       </div>
 
@@ -582,7 +590,7 @@ export default function TrainDetails() {
               <div className="live-cards" style={{ padding: 0, gridTemplateColumns: "repeat(2,1fr)" }}>
                 <div>
                   <span>Running status</span>
-                  <b>{isCompleted ? "Reached Destination" : status}</b>
+                  <b>{isCompleted ? "Reached Destination" : train.status}</b>
                 </div>
                 <div>
                   <span>Platform</span>
